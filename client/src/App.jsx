@@ -19,7 +19,7 @@ const App = () => {
     }
 
     const response = await axios.post(
-      isLogin ? "http://localhost:3000/login" : "http://localhost:3000/create",
+      isLogin ? "https://jwt-lac.vercel.app/login" : "https://jwt-lac.vercel.app/create",
       {
         email,
         password,
