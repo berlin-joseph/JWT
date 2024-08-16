@@ -20,7 +20,7 @@ exports.createUser = async (req, res) => {
           success: true,
           status: true,
           message: "user created",
-          data: [user.email, user.password],
+          data: { id: user._id, email: user.email },
         });
       }
       return res
@@ -49,20 +49,15 @@ exports.loginUser = async (req, res) => {
       const refreshTokens = user.refresh;
 
       if (passMatch) {
-        const accessToken = jwt.sign({ id: user._id }, "hi_Ruby", {
+        const accessToken = jwt.sign({ id: user._id }, refreshTokens, {
           algorithm: "HS256",
           expiresIn: "5m",
         });
 
-        const refreshToken = jwt.sign({ id: user._id }, refreshTokens, {
-          algorithm: "HS256",
-          expiresIn: "7d",
-        });
-
         return res.status(200).send({
           message: "Login successful",
+          id: user._id,
           accessToken,
-          refreshToken,
         });
       }
       return res.status(401).send({ message: "Credentials do not match" });
@@ -75,25 +70,20 @@ exports.loginUser = async (req, res) => {
 
 exports.refresh = async (req, res) => {
   try {
-    const { _id } = req.body;
+    const { _id, token } = req.body;
     const exist = await userModel.findById({ _id });
     const refreshToken = exist.refresh;
     if (!refreshToken) {
       return res.status(401).send({ message: "Refresh token required" });
     }
+    jwt.verify(token, refreshToken, (err, decoded) => {
+      console.log(decoded, "decoded");
 
-    const user = await userModel.findOne({ refresh: refreshToken });
-
-    if (!user) {
-      return res.status(403).send({ message: "Invalid refresh token" });
-    }
-
-    jwt.verify(refreshToken, exist.refresh, (err, decoded) => {
       if (err) {
-        return res.status(403).send({ message: "Invalid refresh token" });
+        return res.status(403).send({ message: "Invalid token" });
       }
 
-      const accessToken = jwt.sign({ id: decoded.id }, "hi_Ruby", {
+      const accessToken = jwt.sign({ id: decoded.id }, refreshToken, {
         algorithm: "HS256",
         expiresIn: "5m",
       });
